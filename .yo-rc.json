@@ -43,6 +43,8 @@
     "devServerPort": 9060,
     "clientTheme": "none",
     "clientThemeVariant": "",
-    "reactive": false
+    "reactive": false,
+    "entities": ["Blog", "Entry", "Tag"],
+    "lastLiquibaseTimestamp": 1625942920000
   }
 }
