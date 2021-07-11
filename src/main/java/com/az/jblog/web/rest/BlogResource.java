@@ -1,7 +1,8 @@
 package com.az.jblog.web.rest;
 
-import com.az.jblog.domain.Blog;
 import com.az.jblog.repository.BlogRepository;
+import com.az.jblog.service.BlogService;
+import com.az.jblog.service.dto.BlogDTO;
 import com.az.jblog.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -14,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import tech.jhipster.web.util.HeaderUtil;
 import tech.jhipster.web.util.ResponseUtil;
@@ -24,7 +24,6 @@ import tech.jhipster.web.util.ResponseUtil;
  */
 @RestController
 @RequestMapping("/api")
-@Transactional
 public class BlogResource {
 
     private final Logger log = LoggerFactory.getLogger(BlogResource.class);
@@ -34,26 +33,29 @@ public class BlogResource {
     @Value("${jhipster.clientApp.name}")
     private String applicationName;
 
+    private final BlogService blogService;
+
     private final BlogRepository blogRepository;
 
-    public BlogResource(BlogRepository blogRepository) {
+    public BlogResource(BlogService blogService, BlogRepository blogRepository) {
+        this.blogService = blogService;
         this.blogRepository = blogRepository;
     }
 
     /**
      * {@code POST  /blogs} : Create a new blog.
      *
-     * @param blog the blog to create.
-     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new blog, or with status {@code 400 (Bad Request)} if the blog has already an ID.
+     * @param blogDTO the blogDTO to create.
+     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new blogDTO, or with status {@code 400 (Bad Request)} if the blog has already an ID.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PostMapping("/blogs")
-    public ResponseEntity<Blog> createBlog(@Valid @RequestBody Blog blog) throws URISyntaxException {
-        log.debug("REST request to save Blog : {}", blog);
-        if (blog.getId() != null) {
+    public ResponseEntity<BlogDTO> createBlog(@Valid @RequestBody BlogDTO blogDTO) throws URISyntaxException {
+        log.debug("REST request to save Blog : {}", blogDTO);
+        if (blogDTO.getId() != null) {
             throw new BadRequestAlertException("A new blog cannot already have an ID", ENTITY_NAME, "idexists");
         }
-        Blog result = blogRepository.save(blog);
+        BlogDTO result = blogService.save(blogDTO);
         return ResponseEntity
             .created(new URI("/api/blogs/" + result.getId()))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, true, ENTITY_NAME, result.getId().toString()))
@@ -63,21 +65,23 @@ public class BlogResource {
     /**
      * {@code PUT  /blogs/:id} : Updates an existing blog.
      *
-     * @param id the id of the blog to save.
-     * @param blog the blog to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated blog,
-     * or with status {@code 400 (Bad Request)} if the blog is not valid,
-     * or with status {@code 500 (Internal Server Error)} if the blog couldn't be updated.
+     * @param id the id of the blogDTO to save.
+     * @param blogDTO the blogDTO to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated blogDTO,
+     * or with status {@code 400 (Bad Request)} if the blogDTO is not valid,
+     * or with status {@code 500 (Internal Server Error)} if the blogDTO couldn't be updated.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PutMapping("/blogs/{id}")
-    public ResponseEntity<Blog> updateBlog(@PathVariable(value = "id", required = false) final Long id, @Valid @RequestBody Blog blog)
-        throws URISyntaxException {
-        log.debug("REST request to update Blog : {}, {}", id, blog);
-        if (blog.getId() == null) {
+    public ResponseEntity<BlogDTO> updateBlog(
+        @PathVariable(value = "id", required = false) final Long id,
+        @Valid @RequestBody BlogDTO blogDTO
+    ) throws URISyntaxException {
+        log.debug("REST request to update Blog : {}, {}", id, blogDTO);
+        if (blogDTO.getId() == null) {
             throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
         }
-        if (!Objects.equals(id, blog.getId())) {
+        if (!Objects.equals(id, blogDTO.getId())) {
             throw new BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid");
         }
 
@@ -85,34 +89,34 @@ public class BlogResource {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
 
-        Blog result = blogRepository.save(blog);
+        BlogDTO result = blogService.save(blogDTO);
         return ResponseEntity
             .ok()
-            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, true, ENTITY_NAME, blog.getId().toString()))
+            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, true, ENTITY_NAME, blogDTO.getId().toString()))
             .body(result);
     }
 
     /**
      * {@code PATCH  /blogs/:id} : Partial updates given fields of an existing blog, field will ignore if it is null
      *
-     * @param id the id of the blog to save.
-     * @param blog the blog to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated blog,
-     * or with status {@code 400 (Bad Request)} if the blog is not valid,
-     * or with status {@code 404 (Not Found)} if the blog is not found,
-     * or with status {@code 500 (Internal Server Error)} if the blog couldn't be updated.
+     * @param id the id of the blogDTO to save.
+     * @param blogDTO the blogDTO to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated blogDTO,
+     * or with status {@code 400 (Bad Request)} if the blogDTO is not valid,
+     * or with status {@code 404 (Not Found)} if the blogDTO is not found,
+     * or with status {@code 500 (Internal Server Error)} if the blogDTO couldn't be updated.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PatchMapping(value = "/blogs/{id}", consumes = "application/merge-patch+json")
-    public ResponseEntity<Blog> partialUpdateBlog(
+    public ResponseEntity<BlogDTO> partialUpdateBlog(
         @PathVariable(value = "id", required = false) final Long id,
-        @NotNull @RequestBody Blog blog
+        @NotNull @RequestBody BlogDTO blogDTO
     ) throws URISyntaxException {
-        log.debug("REST request to partial update Blog partially : {}, {}", id, blog);
-        if (blog.getId() == null) {
+        log.debug("REST request to partial update Blog partially : {}, {}", id, blogDTO);
+        if (blogDTO.getId() == null) {
             throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
         }
-        if (!Objects.equals(id, blog.getId())) {
+        if (!Objects.equals(id, blogDTO.getId())) {
             throw new BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid");
         }
 
@@ -120,25 +124,11 @@ public class BlogResource {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
 
-        Optional<Blog> result = blogRepository
-            .findById(blog.getId())
-            .map(
-                existingBlog -> {
-                    if (blog.getName() != null) {
-                        existingBlog.setName(blog.getName());
-                    }
-                    if (blog.getHandle() != null) {
-                        existingBlog.setHandle(blog.getHandle());
-                    }
-
-                    return existingBlog;
-                }
-            )
-            .map(blogRepository::save);
+        Optional<BlogDTO> result = blogService.partialUpdate(blogDTO);
 
         return ResponseUtil.wrapOrNotFound(
             result,
-            HeaderUtil.createEntityUpdateAlert(applicationName, true, ENTITY_NAME, blog.getId().toString())
+            HeaderUtil.createEntityUpdateAlert(applicationName, true, ENTITY_NAME, blogDTO.getId().toString())
         );
     }
 
@@ -148,34 +138,34 @@ public class BlogResource {
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of blogs in body.
      */
     @GetMapping("/blogs")
-    public List<Blog> getAllBlogs() {
+    public List<BlogDTO> getAllBlogs() {
         log.debug("REST request to get all Blogs");
-        return blogRepository.findAll();
+        return blogService.findAll();
     }
 
     /**
      * {@code GET  /blogs/:id} : get the "id" blog.
      *
-     * @param id the id of the blog to retrieve.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the blog, or with status {@code 404 (Not Found)}.
+     * @param id the id of the blogDTO to retrieve.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the blogDTO, or with status {@code 404 (Not Found)}.
      */
     @GetMapping("/blogs/{id}")
-    public ResponseEntity<Blog> getBlog(@PathVariable Long id) {
+    public ResponseEntity<BlogDTO> getBlog(@PathVariable Long id) {
         log.debug("REST request to get Blog : {}", id);
-        Optional<Blog> blog = blogRepository.findById(id);
-        return ResponseUtil.wrapOrNotFound(blog);
+        Optional<BlogDTO> blogDTO = blogService.findOne(id);
+        return ResponseUtil.wrapOrNotFound(blogDTO);
     }
 
     /**
      * {@code DELETE  /blogs/:id} : delete the "id" blog.
      *
-     * @param id the id of the blog to delete.
+     * @param id the id of the blogDTO to delete.
      * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
      */
     @DeleteMapping("/blogs/{id}")
     public ResponseEntity<Void> deleteBlog(@PathVariable Long id) {
         log.debug("REST request to delete Blog : {}", id);
-        blogRepository.deleteById(id);
+        blogService.delete(id);
         return ResponseEntity
             .noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(applicationName, true, ENTITY_NAME, id.toString()))

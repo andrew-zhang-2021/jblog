@@ -9,6 +9,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.az.jblog.IntegrationTest;
 import com.az.jblog.domain.Entry;
 import com.az.jblog.repository.EntryRepository;
+import com.az.jblog.service.EntryService;
+import com.az.jblog.service.dto.EntryDTO;
+import com.az.jblog.service.mapper.EntryMapper;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -62,6 +65,12 @@ class EntryResourceIT {
     private EntryRepository entryRepositoryMock;
 
     @Autowired
+    private EntryMapper entryMapper;
+
+    @Mock
+    private EntryService entryServiceMock;
+
+    @Autowired
     private EntityManager em;
 
     @Autowired
@@ -101,8 +110,9 @@ class EntryResourceIT {
     void createEntry() throws Exception {
         int databaseSizeBeforeCreate = entryRepository.findAll().size();
         // Create the Entry
+        EntryDTO entryDTO = entryMapper.toDto(entry);
         restEntryMockMvc
-            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(entry)))
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(entryDTO)))
             .andExpect(status().isCreated());
 
         // Validate the Entry in the database
@@ -119,12 +129,13 @@ class EntryResourceIT {
     void createEntryWithExistingId() throws Exception {
         // Create the Entry with an existing ID
         entry.setId(1L);
+        EntryDTO entryDTO = entryMapper.toDto(entry);
 
         int databaseSizeBeforeCreate = entryRepository.findAll().size();
 
         // An entity with an existing ID cannot be created, so this API call must fail
         restEntryMockMvc
-            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(entry)))
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(entryDTO)))
             .andExpect(status().isBadRequest());
 
         // Validate the Entry in the database
@@ -140,9 +151,10 @@ class EntryResourceIT {
         entry.setTitle(null);
 
         // Create the Entry, which fails.
+        EntryDTO entryDTO = entryMapper.toDto(entry);
 
         restEntryMockMvc
-            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(entry)))
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(entryDTO)))
             .andExpect(status().isBadRequest());
 
         List<Entry> entryList = entryRepository.findAll();
@@ -157,9 +169,10 @@ class EntryResourceIT {
         entry.setDate(null);
 
         // Create the Entry, which fails.
+        EntryDTO entryDTO = entryMapper.toDto(entry);
 
         restEntryMockMvc
-            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(entry)))
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(entryDTO)))
             .andExpect(status().isBadRequest());
 
         List<Entry> entryList = entryRepository.findAll();
@@ -185,20 +198,20 @@ class EntryResourceIT {
 
     @SuppressWarnings({ "unchecked" })
     void getAllEntriesWithEagerRelationshipsIsEnabled() throws Exception {
-        when(entryRepositoryMock.findAllWithEagerRelationships(any())).thenReturn(new PageImpl(new ArrayList<>()));
+        when(entryServiceMock.findAllWithEagerRelationships(any())).thenReturn(new PageImpl(new ArrayList<>()));
 
         restEntryMockMvc.perform(get(ENTITY_API_URL + "?eagerload=true")).andExpect(status().isOk());
 
-        verify(entryRepositoryMock, times(1)).findAllWithEagerRelationships(any());
+        verify(entryServiceMock, times(1)).findAllWithEagerRelationships(any());
     }
 
     @SuppressWarnings({ "unchecked" })
     void getAllEntriesWithEagerRelationshipsIsNotEnabled() throws Exception {
-        when(entryRepositoryMock.findAllWithEagerRelationships(any())).thenReturn(new PageImpl(new ArrayList<>()));
+        when(entryServiceMock.findAllWithEagerRelationships(any())).thenReturn(new PageImpl(new ArrayList<>()));
 
         restEntryMockMvc.perform(get(ENTITY_API_URL + "?eagerload=true")).andExpect(status().isOk());
 
-        verify(entryRepositoryMock, times(1)).findAllWithEagerRelationships(any());
+        verify(entryServiceMock, times(1)).findAllWithEagerRelationships(any());
     }
 
     @Test
@@ -238,12 +251,13 @@ class EntryResourceIT {
         // Disconnect from session so that the updates on updatedEntry are not directly saved in db
         em.detach(updatedEntry);
         updatedEntry.title(UPDATED_TITLE).content(UPDATED_CONTENT).date(UPDATED_DATE);
+        EntryDTO entryDTO = entryMapper.toDto(updatedEntry);
 
         restEntryMockMvc
             .perform(
-                put(ENTITY_API_URL_ID, updatedEntry.getId())
+                put(ENTITY_API_URL_ID, entryDTO.getId())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.convertObjectToJsonBytes(updatedEntry))
+                    .content(TestUtil.convertObjectToJsonBytes(entryDTO))
             )
             .andExpect(status().isOk());
 
@@ -262,12 +276,15 @@ class EntryResourceIT {
         int databaseSizeBeforeUpdate = entryRepository.findAll().size();
         entry.setId(count.incrementAndGet());
 
+        // Create the Entry
+        EntryDTO entryDTO = entryMapper.toDto(entry);
+
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
         restEntryMockMvc
             .perform(
-                put(ENTITY_API_URL_ID, entry.getId())
+                put(ENTITY_API_URL_ID, entryDTO.getId())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.convertObjectToJsonBytes(entry))
+                    .content(TestUtil.convertObjectToJsonBytes(entryDTO))
             )
             .andExpect(status().isBadRequest());
 
@@ -282,12 +299,15 @@ class EntryResourceIT {
         int databaseSizeBeforeUpdate = entryRepository.findAll().size();
         entry.setId(count.incrementAndGet());
 
+        // Create the Entry
+        EntryDTO entryDTO = entryMapper.toDto(entry);
+
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         restEntryMockMvc
             .perform(
                 put(ENTITY_API_URL_ID, count.incrementAndGet())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.convertObjectToJsonBytes(entry))
+                    .content(TestUtil.convertObjectToJsonBytes(entryDTO))
             )
             .andExpect(status().isBadRequest());
 
@@ -302,9 +322,12 @@ class EntryResourceIT {
         int databaseSizeBeforeUpdate = entryRepository.findAll().size();
         entry.setId(count.incrementAndGet());
 
+        // Create the Entry
+        EntryDTO entryDTO = entryMapper.toDto(entry);
+
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         restEntryMockMvc
-            .perform(put(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(entry)))
+            .perform(put(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(entryDTO)))
             .andExpect(status().isMethodNotAllowed());
 
         // Validate the Entry in the database
@@ -380,12 +403,15 @@ class EntryResourceIT {
         int databaseSizeBeforeUpdate = entryRepository.findAll().size();
         entry.setId(count.incrementAndGet());
 
+        // Create the Entry
+        EntryDTO entryDTO = entryMapper.toDto(entry);
+
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
         restEntryMockMvc
             .perform(
-                patch(ENTITY_API_URL_ID, entry.getId())
+                patch(ENTITY_API_URL_ID, entryDTO.getId())
                     .contentType("application/merge-patch+json")
-                    .content(TestUtil.convertObjectToJsonBytes(entry))
+                    .content(TestUtil.convertObjectToJsonBytes(entryDTO))
             )
             .andExpect(status().isBadRequest());
 
@@ -400,12 +426,15 @@ class EntryResourceIT {
         int databaseSizeBeforeUpdate = entryRepository.findAll().size();
         entry.setId(count.incrementAndGet());
 
+        // Create the Entry
+        EntryDTO entryDTO = entryMapper.toDto(entry);
+
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         restEntryMockMvc
             .perform(
                 patch(ENTITY_API_URL_ID, count.incrementAndGet())
                     .contentType("application/merge-patch+json")
-                    .content(TestUtil.convertObjectToJsonBytes(entry))
+                    .content(TestUtil.convertObjectToJsonBytes(entryDTO))
             )
             .andExpect(status().isBadRequest());
 
@@ -420,9 +449,12 @@ class EntryResourceIT {
         int databaseSizeBeforeUpdate = entryRepository.findAll().size();
         entry.setId(count.incrementAndGet());
 
+        // Create the Entry
+        EntryDTO entryDTO = entryMapper.toDto(entry);
+
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         restEntryMockMvc
-            .perform(patch(ENTITY_API_URL).contentType("application/merge-patch+json").content(TestUtil.convertObjectToJsonBytes(entry)))
+            .perform(patch(ENTITY_API_URL).contentType("application/merge-patch+json").content(TestUtil.convertObjectToJsonBytes(entryDTO)))
             .andExpect(status().isMethodNotAllowed());
 
         // Validate the Entry in the database

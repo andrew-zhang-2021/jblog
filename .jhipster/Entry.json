@@ -36,9 +36,9 @@
     }
   ],
   "entityTableName": "entry",
-  "dto": "no",
+  "dto": "mapstruct",
   "pagination": "infinite-scroll",
-  "service": "no",
+  "service": "serviceImpl",
   "jpaMetamodelFiltering": false,
   "fluentMethods": true,
   "readOnly": false,

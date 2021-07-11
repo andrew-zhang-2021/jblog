@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.az.jblog.IntegrationTest;
 import com.az.jblog.domain.Blog;
 import com.az.jblog.repository.BlogRepository;
+import com.az.jblog.service.dto.BlogDTO;
+import com.az.jblog.service.mapper.BlogMapper;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
@@ -43,6 +45,9 @@ class BlogResourceIT {
 
     @Autowired
     private BlogRepository blogRepository;
+
+    @Autowired
+    private BlogMapper blogMapper;
 
     @Autowired
     private EntityManager em;
@@ -84,8 +89,9 @@ class BlogResourceIT {
     void createBlog() throws Exception {
         int databaseSizeBeforeCreate = blogRepository.findAll().size();
         // Create the Blog
+        BlogDTO blogDTO = blogMapper.toDto(blog);
         restBlogMockMvc
-            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(blog)))
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(blogDTO)))
             .andExpect(status().isCreated());
 
         // Validate the Blog in the database
@@ -101,12 +107,13 @@ class BlogResourceIT {
     void createBlogWithExistingId() throws Exception {
         // Create the Blog with an existing ID
         blog.setId(1L);
+        BlogDTO blogDTO = blogMapper.toDto(blog);
 
         int databaseSizeBeforeCreate = blogRepository.findAll().size();
 
         // An entity with an existing ID cannot be created, so this API call must fail
         restBlogMockMvc
-            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(blog)))
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(blogDTO)))
             .andExpect(status().isBadRequest());
 
         // Validate the Blog in the database
@@ -122,9 +129,10 @@ class BlogResourceIT {
         blog.setName(null);
 
         // Create the Blog, which fails.
+        BlogDTO blogDTO = blogMapper.toDto(blog);
 
         restBlogMockMvc
-            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(blog)))
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(blogDTO)))
             .andExpect(status().isBadRequest());
 
         List<Blog> blogList = blogRepository.findAll();
@@ -139,9 +147,10 @@ class BlogResourceIT {
         blog.setHandle(null);
 
         // Create the Blog, which fails.
+        BlogDTO blogDTO = blogMapper.toDto(blog);
 
         restBlogMockMvc
-            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(blog)))
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(blogDTO)))
             .andExpect(status().isBadRequest());
 
         List<Blog> blogList = blogRepository.findAll();
@@ -200,12 +209,13 @@ class BlogResourceIT {
         // Disconnect from session so that the updates on updatedBlog are not directly saved in db
         em.detach(updatedBlog);
         updatedBlog.name(UPDATED_NAME).handle(UPDATED_HANDLE);
+        BlogDTO blogDTO = blogMapper.toDto(updatedBlog);
 
         restBlogMockMvc
             .perform(
-                put(ENTITY_API_URL_ID, updatedBlog.getId())
+                put(ENTITY_API_URL_ID, blogDTO.getId())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.convertObjectToJsonBytes(updatedBlog))
+                    .content(TestUtil.convertObjectToJsonBytes(blogDTO))
             )
             .andExpect(status().isOk());
 
@@ -223,12 +233,15 @@ class BlogResourceIT {
         int databaseSizeBeforeUpdate = blogRepository.findAll().size();
         blog.setId(count.incrementAndGet());
 
+        // Create the Blog
+        BlogDTO blogDTO = blogMapper.toDto(blog);
+
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
         restBlogMockMvc
             .perform(
-                put(ENTITY_API_URL_ID, blog.getId())
+                put(ENTITY_API_URL_ID, blogDTO.getId())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.convertObjectToJsonBytes(blog))
+                    .content(TestUtil.convertObjectToJsonBytes(blogDTO))
             )
             .andExpect(status().isBadRequest());
 
@@ -243,12 +256,15 @@ class BlogResourceIT {
         int databaseSizeBeforeUpdate = blogRepository.findAll().size();
         blog.setId(count.incrementAndGet());
 
+        // Create the Blog
+        BlogDTO blogDTO = blogMapper.toDto(blog);
+
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         restBlogMockMvc
             .perform(
                 put(ENTITY_API_URL_ID, count.incrementAndGet())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.convertObjectToJsonBytes(blog))
+                    .content(TestUtil.convertObjectToJsonBytes(blogDTO))
             )
             .andExpect(status().isBadRequest());
 
@@ -263,9 +279,12 @@ class BlogResourceIT {
         int databaseSizeBeforeUpdate = blogRepository.findAll().size();
         blog.setId(count.incrementAndGet());
 
+        // Create the Blog
+        BlogDTO blogDTO = blogMapper.toDto(blog);
+
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         restBlogMockMvc
-            .perform(put(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(blog)))
+            .perform(put(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(TestUtil.convertObjectToJsonBytes(blogDTO)))
             .andExpect(status().isMethodNotAllowed());
 
         // Validate the Blog in the database
@@ -339,12 +358,15 @@ class BlogResourceIT {
         int databaseSizeBeforeUpdate = blogRepository.findAll().size();
         blog.setId(count.incrementAndGet());
 
+        // Create the Blog
+        BlogDTO blogDTO = blogMapper.toDto(blog);
+
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
         restBlogMockMvc
             .perform(
-                patch(ENTITY_API_URL_ID, blog.getId())
+                patch(ENTITY_API_URL_ID, blogDTO.getId())
                     .contentType("application/merge-patch+json")
-                    .content(TestUtil.convertObjectToJsonBytes(blog))
+                    .content(TestUtil.convertObjectToJsonBytes(blogDTO))
             )
             .andExpect(status().isBadRequest());
 
@@ -359,12 +381,15 @@ class BlogResourceIT {
         int databaseSizeBeforeUpdate = blogRepository.findAll().size();
         blog.setId(count.incrementAndGet());
 
+        // Create the Blog
+        BlogDTO blogDTO = blogMapper.toDto(blog);
+
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         restBlogMockMvc
             .perform(
                 patch(ENTITY_API_URL_ID, count.incrementAndGet())
                     .contentType("application/merge-patch+json")
-                    .content(TestUtil.convertObjectToJsonBytes(blog))
+                    .content(TestUtil.convertObjectToJsonBytes(blogDTO))
             )
             .andExpect(status().isBadRequest());
 
@@ -379,9 +404,12 @@ class BlogResourceIT {
         int databaseSizeBeforeUpdate = blogRepository.findAll().size();
         blog.setId(count.incrementAndGet());
 
+        // Create the Blog
+        BlogDTO blogDTO = blogMapper.toDto(blog);
+
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
         restBlogMockMvc
-            .perform(patch(ENTITY_API_URL).contentType("application/merge-patch+json").content(TestUtil.convertObjectToJsonBytes(blog)))
+            .perform(patch(ENTITY_API_URL).contentType("application/merge-patch+json").content(TestUtil.convertObjectToJsonBytes(blogDTO)))
             .andExpect(status().isMethodNotAllowed());
 
         // Validate the Blog in the database

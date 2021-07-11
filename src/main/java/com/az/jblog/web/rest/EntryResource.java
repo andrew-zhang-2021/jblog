@@ -1,7 +1,8 @@
 package com.az.jblog.web.rest;
 
-import com.az.jblog.domain.Entry;
 import com.az.jblog.repository.EntryRepository;
+import com.az.jblog.service.EntryService;
+import com.az.jblog.service.dto.EntryDTO;
 import com.az.jblog.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -18,7 +19,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import tech.jhipster.web.util.HeaderUtil;
@@ -30,7 +30,6 @@ import tech.jhipster.web.util.ResponseUtil;
  */
 @RestController
 @RequestMapping("/api")
-@Transactional
 public class EntryResource {
 
     private final Logger log = LoggerFactory.getLogger(EntryResource.class);
@@ -40,26 +39,29 @@ public class EntryResource {
     @Value("${jhipster.clientApp.name}")
     private String applicationName;
 
+    private final EntryService entryService;
+
     private final EntryRepository entryRepository;
 
-    public EntryResource(EntryRepository entryRepository) {
+    public EntryResource(EntryService entryService, EntryRepository entryRepository) {
+        this.entryService = entryService;
         this.entryRepository = entryRepository;
     }
 
     /**
      * {@code POST  /entries} : Create a new entry.
      *
-     * @param entry the entry to create.
-     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new entry, or with status {@code 400 (Bad Request)} if the entry has already an ID.
+     * @param entryDTO the entryDTO to create.
+     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new entryDTO, or with status {@code 400 (Bad Request)} if the entry has already an ID.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PostMapping("/entries")
-    public ResponseEntity<Entry> createEntry(@Valid @RequestBody Entry entry) throws URISyntaxException {
-        log.debug("REST request to save Entry : {}", entry);
-        if (entry.getId() != null) {
+    public ResponseEntity<EntryDTO> createEntry(@Valid @RequestBody EntryDTO entryDTO) throws URISyntaxException {
+        log.debug("REST request to save Entry : {}", entryDTO);
+        if (entryDTO.getId() != null) {
             throw new BadRequestAlertException("A new entry cannot already have an ID", ENTITY_NAME, "idexists");
         }
-        Entry result = entryRepository.save(entry);
+        EntryDTO result = entryService.save(entryDTO);
         return ResponseEntity
             .created(new URI("/api/entries/" + result.getId()))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, true, ENTITY_NAME, result.getId().toString()))
@@ -69,21 +71,23 @@ public class EntryResource {
     /**
      * {@code PUT  /entries/:id} : Updates an existing entry.
      *
-     * @param id the id of the entry to save.
-     * @param entry the entry to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated entry,
-     * or with status {@code 400 (Bad Request)} if the entry is not valid,
-     * or with status {@code 500 (Internal Server Error)} if the entry couldn't be updated.
+     * @param id the id of the entryDTO to save.
+     * @param entryDTO the entryDTO to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated entryDTO,
+     * or with status {@code 400 (Bad Request)} if the entryDTO is not valid,
+     * or with status {@code 500 (Internal Server Error)} if the entryDTO couldn't be updated.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PutMapping("/entries/{id}")
-    public ResponseEntity<Entry> updateEntry(@PathVariable(value = "id", required = false) final Long id, @Valid @RequestBody Entry entry)
-        throws URISyntaxException {
-        log.debug("REST request to update Entry : {}, {}", id, entry);
-        if (entry.getId() == null) {
+    public ResponseEntity<EntryDTO> updateEntry(
+        @PathVariable(value = "id", required = false) final Long id,
+        @Valid @RequestBody EntryDTO entryDTO
+    ) throws URISyntaxException {
+        log.debug("REST request to update Entry : {}, {}", id, entryDTO);
+        if (entryDTO.getId() == null) {
             throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
         }
-        if (!Objects.equals(id, entry.getId())) {
+        if (!Objects.equals(id, entryDTO.getId())) {
             throw new BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid");
         }
 
@@ -91,34 +95,34 @@ public class EntryResource {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
 
-        Entry result = entryRepository.save(entry);
+        EntryDTO result = entryService.save(entryDTO);
         return ResponseEntity
             .ok()
-            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, true, ENTITY_NAME, entry.getId().toString()))
+            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, true, ENTITY_NAME, entryDTO.getId().toString()))
             .body(result);
     }
 
     /**
      * {@code PATCH  /entries/:id} : Partial updates given fields of an existing entry, field will ignore if it is null
      *
-     * @param id the id of the entry to save.
-     * @param entry the entry to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated entry,
-     * or with status {@code 400 (Bad Request)} if the entry is not valid,
-     * or with status {@code 404 (Not Found)} if the entry is not found,
-     * or with status {@code 500 (Internal Server Error)} if the entry couldn't be updated.
+     * @param id the id of the entryDTO to save.
+     * @param entryDTO the entryDTO to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated entryDTO,
+     * or with status {@code 400 (Bad Request)} if the entryDTO is not valid,
+     * or with status {@code 404 (Not Found)} if the entryDTO is not found,
+     * or with status {@code 500 (Internal Server Error)} if the entryDTO couldn't be updated.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PatchMapping(value = "/entries/{id}", consumes = "application/merge-patch+json")
-    public ResponseEntity<Entry> partialUpdateEntry(
+    public ResponseEntity<EntryDTO> partialUpdateEntry(
         @PathVariable(value = "id", required = false) final Long id,
-        @NotNull @RequestBody Entry entry
+        @NotNull @RequestBody EntryDTO entryDTO
     ) throws URISyntaxException {
-        log.debug("REST request to partial update Entry partially : {}, {}", id, entry);
-        if (entry.getId() == null) {
+        log.debug("REST request to partial update Entry partially : {}, {}", id, entryDTO);
+        if (entryDTO.getId() == null) {
             throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
         }
-        if (!Objects.equals(id, entry.getId())) {
+        if (!Objects.equals(id, entryDTO.getId())) {
             throw new BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid");
         }
 
@@ -126,28 +130,11 @@ public class EntryResource {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
 
-        Optional<Entry> result = entryRepository
-            .findById(entry.getId())
-            .map(
-                existingEntry -> {
-                    if (entry.getTitle() != null) {
-                        existingEntry.setTitle(entry.getTitle());
-                    }
-                    if (entry.getContent() != null) {
-                        existingEntry.setContent(entry.getContent());
-                    }
-                    if (entry.getDate() != null) {
-                        existingEntry.setDate(entry.getDate());
-                    }
-
-                    return existingEntry;
-                }
-            )
-            .map(entryRepository::save);
+        Optional<EntryDTO> result = entryService.partialUpdate(entryDTO);
 
         return ResponseUtil.wrapOrNotFound(
             result,
-            HeaderUtil.createEntityUpdateAlert(applicationName, true, ENTITY_NAME, entry.getId().toString())
+            HeaderUtil.createEntityUpdateAlert(applicationName, true, ENTITY_NAME, entryDTO.getId().toString())
         );
     }
 
@@ -159,16 +146,16 @@ public class EntryResource {
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of entries in body.
      */
     @GetMapping("/entries")
-    public ResponseEntity<List<Entry>> getAllEntries(
+    public ResponseEntity<List<EntryDTO>> getAllEntries(
         Pageable pageable,
         @RequestParam(required = false, defaultValue = "false") boolean eagerload
     ) {
         log.debug("REST request to get a page of Entries");
-        Page<Entry> page;
+        Page<EntryDTO> page;
         if (eagerload) {
-            page = entryRepository.findAllWithEagerRelationships(pageable);
+            page = entryService.findAllWithEagerRelationships(pageable);
         } else {
-            page = entryRepository.findAll(pageable);
+            page = entryService.findAll(pageable);
         }
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
@@ -177,26 +164,26 @@ public class EntryResource {
     /**
      * {@code GET  /entries/:id} : get the "id" entry.
      *
-     * @param id the id of the entry to retrieve.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the entry, or with status {@code 404 (Not Found)}.
+     * @param id the id of the entryDTO to retrieve.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the entryDTO, or with status {@code 404 (Not Found)}.
      */
     @GetMapping("/entries/{id}")
-    public ResponseEntity<Entry> getEntry(@PathVariable Long id) {
+    public ResponseEntity<EntryDTO> getEntry(@PathVariable Long id) {
         log.debug("REST request to get Entry : {}", id);
-        Optional<Entry> entry = entryRepository.findOneWithEagerRelationships(id);
-        return ResponseUtil.wrapOrNotFound(entry);
+        Optional<EntryDTO> entryDTO = entryService.findOne(id);
+        return ResponseUtil.wrapOrNotFound(entryDTO);
     }
 
     /**
      * {@code DELETE  /entries/:id} : delete the "id" entry.
      *
-     * @param id the id of the entry to delete.
+     * @param id the id of the entryDTO to delete.
      * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
      */
     @DeleteMapping("/entries/{id}")
     public ResponseEntity<Void> deleteEntry(@PathVariable Long id) {
         log.debug("REST request to delete Entry : {}", id);
-        entryRepository.deleteById(id);
+        entryService.delete(id);
         return ResponseEntity
             .noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(applicationName, true, ENTITY_NAME, id.toString()))
