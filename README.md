@@ -1,1 +1,1 @@
-# jblog
+# jblog, a simple blog system!
